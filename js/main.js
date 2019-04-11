@@ -8,9 +8,10 @@ var markers = []
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', (event) => {
-  initMap(); // added 
+  initMap(); // added
   fetchNeighborhoods();
   fetchCuisines();
+  addServiceWorker();
 });
 
 /**
@@ -73,12 +74,12 @@ fillCuisinesHTML = (cuisines = self.cuisines) => {
  */
 initMap = () => {
   self.newMap = L.map('map', {
-        center: [40.722216, -73.987501],
-        zoom: 12,
-        scrollWheelZoom: false
-      });
+    center: [40.722216, -73.987501],
+    zoom: 12,
+    scrollWheelZoom: false
+  });
   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-    mapboxToken: 'pk.eyJ1IjoiZW5lYXNtYXJxdWVzIiwiYSI6ImNqb3hjYm0wYTIzNzgzcG1qamR2bHM1cDAifQ.euL22KYyTJ2-akje14Jcwg',
+    mapboxToken: 'pk.eyJ1IjoiY2FybWljaGFlbDA2IiwiYSI6ImNqcHUzOHB5YzBjanAzeHF6aG1lemk2NXQifQ.2xtP52iiW0iZd2DhhSLEjQ',
     maxZoom: 18,
     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
       '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
@@ -145,10 +146,14 @@ resetRestaurants = (restaurants) => {
  * Create all restaurants HTML and add them to the webpage.
  */
 fillRestaurantsHTML = (restaurants = self.restaurants) => {
-  const ul = document.getElementById('restaurants-list');
+  const div = document.getElementById('restaurants-list');
+  let temp = '';
+  temp = `<div class = "row">`;
   restaurants.forEach(restaurant => {
-    ul.append(createRestaurantHTML(restaurant));
+    temp += (createRestaurantHTML(restaurant));
   });
+  temp += `</div>`;
+  div.innerHTML = temp;
   addMarkersToMap();
 }
 
@@ -156,31 +161,26 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
  * Create restaurant HTML.
  */
 createRestaurantHTML = (restaurant) => {
-  const li = document.createElement('li');
-
-  const image = document.createElement('img');
-  image.className = 'restaurant-img';
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
-  li.append(image);
-
-  const name = document.createElement('h1');
-  name.innerHTML = restaurant.name;
-  li.append(name);
-
-  const neighborhood = document.createElement('p');
-  neighborhood.innerHTML = restaurant.neighborhood;
-  li.append(neighborhood);
-
-  const address = document.createElement('p');
-  address.innerHTML = restaurant.address;
-  li.append(address);
-
-  const more = document.createElement('a');
-  more.innerHTML = 'View Details';
-  more.href = DBHelper.urlForRestaurant(restaurant);
-  li.append(more)
-
-  return li
+  const src = DBHelper.imageUrlForRestaurant(restaurant);
+  const name = restaurant.name;
+  const alt = name + " restaurant";
+  const neighborhood = restaurant.neighborhood;
+  const address = restaurant.address;
+  const href = DBHelper.urlForRestaurant(restaurant);
+  const div = `
+  <div class = "col-md-12 col-lg-6">
+    <div class="card mt-5">
+      <img class="card-img-top restaurant-img" src="${src}" alt="${alt}">
+      <div class="card-body">
+        <h5 class="card-title">${name}</h5>
+        <p class="card-text">${neighborhood}</p>
+        <p class="card-text">${address}</p>
+        <a href="${href}">'View Details'</a>
+      </div>
+    </div>
+  </div>
+`
+  return div;
 }
 
 /**
@@ -191,13 +191,30 @@ addMarkersToMap = (restaurants = self.restaurants) => {
     // Add marker to the map
     const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.newMap);
     marker.on("click", onClick);
+
     function onClick() {
       window.location.href = marker.options.url;
     }
     self.markers.push(marker);
   });
 
-} 
+}
+
+addServiceWorker = () =>{
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').then(function(registration) {
+        // Registration was successful
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      }).catch(function(err) {
+        // registration failed :(
+        console.log('ServiceWorker registration failed: ', err);
+      });
+    });
+  }
+}
+
+
 /* addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     // Add marker to the map
@@ -208,4 +225,3 @@ addMarkersToMap = (restaurants = self.restaurants) => {
     self.markers.push(marker);
   });
 } */
-
