@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
   initMap(); // added
   fetchNeighborhoods();
   fetchCuisines();
-  addServiceWorker();
 });
 
 /**
@@ -79,7 +78,7 @@ initMap = () => {
     scrollWheelZoom: false
   });
   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-    mapboxToken: 'pk.eyJ1IjoiY2FybWljaGFlbDA2IiwiYSI6ImNqcHUzOHB5YzBjanAzeHF6aG1lemk2NXQifQ.2xtP52iiW0iZd2DhhSLEjQ',
+    mapboxToken: 'pk.eyJ1IjoiZGF2aWRzaWx2YXNwIiwiYSI6ImNqc2NoOTh4bDBrNTgzeWpuMHRia2s0NTcifQ.1uFX0nSwsptbOJyCeZGiPA',
     maxZoom: 18,
     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
       '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
@@ -115,6 +114,12 @@ updateRestaurants = () => {
   const cuisine = cSelect[cIndex].value;
   const neighborhood = nSelect[nIndex].value;
 
+  const cText = cSelect.options[cIndex].textContent;
+  const nText = nSelect.options[nIndex].textContent
+  const section = document.getElementById('restaurants-list');
+
+  section.setAttribute('aria-label', `List of restaurants for ${cText} in ${nText}`);
+
   DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
     if (error) { // Got an error!
       console.error(error);
@@ -131,8 +136,8 @@ updateRestaurants = () => {
 resetRestaurants = (restaurants) => {
   // Remove all restaurants
   self.restaurants = [];
-  const ul = document.getElementById('restaurants-list');
-  ul.innerHTML = '';
+  const section = document.getElementById('restaurants-list');
+  section.innerHTML = '';
 
   // Remove all map markers
   if (self.markers) {
@@ -146,41 +151,95 @@ resetRestaurants = (restaurants) => {
  * Create all restaurants HTML and add them to the webpage.
  */
 fillRestaurantsHTML = (restaurants = self.restaurants) => {
-  const div = document.getElementById('restaurants-list');
-  let temp = '';
-  temp = `<div class = "row">`;
-  restaurants.forEach(restaurant => {
-    temp += (createRestaurantHTML(restaurant));
-  });
-  temp += `</div>`;
-  div.innerHTML = temp;
-  addMarkersToMap();
+  const section = document.getElementById('restaurants-list')
+
+  if(restaurants.length) {
+    restaurants.forEach(restaurant => {
+      section.append(createRestaurantHTML(restaurant));
+    });
+
+    addMarkersToMap();
+  } else {
+    handleRestaurantNotFound(section);
+  }
+
+}
+
+/**
+ * Display an error message if there are no results for the searched restaurants.
+ */
+handleRestaurantNotFound = section => {
+  const cSelect = document.getElementById('cuisines-select');
+  const nSelect = document.getElementById('neighborhoods-select');
+
+  const cText = cSelect.options[cSelect.selectedIndex].textContent;
+  const nText = nSelect.options[nSelect.selectedIndex].textContent
+
+  const errorMsg = document.createElement('h2');
+  errorMsg.className = 'no-results';
+  errorMsg.innerHTML = `No restaurant found for <b>${cText}</b> in <b>${nText}</b>.`;
+
+  section.setAttribute('aria-label', `No restaurant found for ${cText} in ${nText}`);
+  section.append(errorMsg);
 }
 
 /**
  * Create restaurant HTML.
  */
 createRestaurantHTML = (restaurant) => {
-  const src = DBHelper.imageUrlForRestaurant(restaurant);
-  const name = restaurant.name;
-  const alt = name + " restaurant";
-  const neighborhood = restaurant.neighborhood;
-  const address = restaurant.address;
-  const href = DBHelper.urlForRestaurant(restaurant);
-  const div = `
-  <div class = "col-md-12 col-lg-6">
-    <div class="card mt-5">
-      <img class="card-img-top restaurant-img" src="${src}" alt="${alt}">
-      <div class="card-body">
-        <h5 class="card-title">${name}</h5>
-        <p class="card-text">${neighborhood}</p>
-        <p class="card-text">${address}</p>
-        <a href="${href}">'View Details'</a>
-      </div>
-    </div>
-  </div>
-`
-  return div;
+  const article = document.createElement('article');
+  article.className = 'restaurant-card';
+  article.setAttribute('role', 'contentinfo');
+  article.setAttribute('aria-label', `Card content about ${restaurant.name} Restaurant's`);
+  article.tabIndex = 0;
+  article.classList.add('load');
+
+  const cover = document.createElement('div');
+  cover.className = 'restaurant-cover';
+
+  const image = document.createElement('img');
+  image.className = 'restaurant-img';
+  image.alt = `Cover image of ${restaurant.name} restaurant`;
+  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.tabIndex = 0;
+  cover.append(image);
+
+  article.append(cover);
+
+  // restaurant box info
+  const info = document.createElement('div');
+  info.className = 'restaurant-info';
+
+  // title
+  const name = document.createElement('h2');
+  name.innerHTML = restaurant.name;
+  name.tabIndex = 0;
+  info.append(name);
+
+  // div location
+  const location = document.createElement('address');
+  location.tabIndex = 0;
+
+  // address
+  const neighborhood = document.createElement('p');
+  neighborhood.innerHTML = restaurant.neighborhood;
+  location.append(neighborhood);
+  const address = document.createElement('p');
+  address.innerHTML = restaurant.address;
+  location.append(address);
+
+  info.append(location);
+
+  // link more details
+  const more = document.createElement('a');
+  more.innerHTML = 'View Details';
+  more.href = DBHelper.urlForRestaurant(restaurant);
+  more.setAttribute('aria-label', `More details about ${restaurant.name} Restaurant's`);
+  info.append(more);
+
+  article.append(info);
+
+  return article;
 }
 
 /**
@@ -191,7 +250,6 @@ addMarkersToMap = (restaurants = self.restaurants) => {
     // Add marker to the map
     const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.newMap);
     marker.on("click", onClick);
-
     function onClick() {
       window.location.href = marker.options.url;
     }
@@ -199,22 +257,6 @@ addMarkersToMap = (restaurants = self.restaurants) => {
   });
 
 }
-
-addServiceWorker = () =>{
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('/sw.js').then(function(registration) {
-        // Registration was successful
-        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-      }).catch(function(err) {
-        // registration failed :(
-        console.log('ServiceWorker registration failed: ', err);
-      });
-    });
-  }
-}
-
-
 /* addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     // Add marker to the map
