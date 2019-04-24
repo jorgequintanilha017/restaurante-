@@ -8,7 +8,7 @@ var markers = []
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', (event) => {
-  initMap(); // added
+  initMap(); // added 
   fetchNeighborhoods();
   fetchCuisines();
 });
@@ -73,12 +73,12 @@ fillCuisinesHTML = (cuisines = self.cuisines) => {
  */
 initMap = () => {
   self.newMap = L.map('map', {
-    center: [40.722216, -73.987501],
-    zoom: 12,
-    scrollWheelZoom: false
-  });
+        center: [40.722216, -73.987501],
+        zoom: 12,
+        scrollWheelZoom: false
+      });
   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-    mapboxToken: 'pk.eyJ1IjoiZGF2aWRzaWx2YXNwIiwiYSI6ImNqc2NoOTh4bDBrNTgzeWpuMHRia2s0NTcifQ.1uFX0nSwsptbOJyCeZGiPA',
+    mapboxToken: '<your MAPBOX API KEY HERE>',
     maxZoom: 18,
     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
       '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
@@ -114,12 +114,6 @@ updateRestaurants = () => {
   const cuisine = cSelect[cIndex].value;
   const neighborhood = nSelect[nIndex].value;
 
-  const cText = cSelect.options[cIndex].textContent;
-  const nText = nSelect.options[nIndex].textContent
-  const section = document.getElementById('restaurants-list');
-
-  section.setAttribute('aria-label', `List of restaurants for ${cText} in ${nText}`);
-
   DBHelper.fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, (error, restaurants) => {
     if (error) { // Got an error!
       console.error(error);
@@ -136,8 +130,8 @@ updateRestaurants = () => {
 resetRestaurants = (restaurants) => {
   // Remove all restaurants
   self.restaurants = [];
-  const section = document.getElementById('restaurants-list');
-  section.innerHTML = '';
+  const ul = document.getElementById('restaurants-list');
+  ul.innerHTML = '';
 
   // Remove all map markers
   if (self.markers) {
@@ -151,95 +145,42 @@ resetRestaurants = (restaurants) => {
  * Create all restaurants HTML and add them to the webpage.
  */
 fillRestaurantsHTML = (restaurants = self.restaurants) => {
-  const section = document.getElementById('restaurants-list')
-
-  if(restaurants.length) {
-    restaurants.forEach(restaurant => {
-      section.append(createRestaurantHTML(restaurant));
-    });
-
-    addMarkersToMap();
-  } else {
-    handleRestaurantNotFound(section);
-  }
-
-}
-
-/**
- * Display an error message if there are no results for the searched restaurants.
- */
-handleRestaurantNotFound = section => {
-  const cSelect = document.getElementById('cuisines-select');
-  const nSelect = document.getElementById('neighborhoods-select');
-
-  const cText = cSelect.options[cSelect.selectedIndex].textContent;
-  const nText = nSelect.options[nSelect.selectedIndex].textContent
-
-  const errorMsg = document.createElement('h2');
-  errorMsg.className = 'no-results';
-  errorMsg.innerHTML = `No restaurant found for <b>${cText}</b> in <b>${nText}</b>.`;
-
-  section.setAttribute('aria-label', `No restaurant found for ${cText} in ${nText}`);
-  section.append(errorMsg);
+  const ul = document.getElementById('restaurants-list');
+  restaurants.forEach(restaurant => {
+    ul.append(createRestaurantHTML(restaurant));
+  });
+  addMarkersToMap();
 }
 
 /**
  * Create restaurant HTML.
  */
 createRestaurantHTML = (restaurant) => {
-  const article = document.createElement('article');
-  article.className = 'restaurant-card';
-  article.setAttribute('role', 'contentinfo');
-  article.setAttribute('aria-label', `Card content about ${restaurant.name} Restaurant's`);
-  article.tabIndex = 0;
-  article.classList.add('load');
-
-  const cover = document.createElement('div');
-  cover.className = 'restaurant-cover';
+  const li = document.createElement('li');
 
   const image = document.createElement('img');
   image.className = 'restaurant-img';
-  image.alt = `Cover image of ${restaurant.name} restaurant`;
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
-  image.tabIndex = 0;
-  cover.append(image);
+  li.append(image);
 
-  article.append(cover);
-
-  // restaurant box info
-  const info = document.createElement('div');
-  info.className = 'restaurant-info';
-
-  // title
-  const name = document.createElement('h2');
+  const name = document.createElement('h1');
   name.innerHTML = restaurant.name;
-  name.tabIndex = 0;
-  info.append(name);
+  li.append(name);
 
-  // div location
-  const location = document.createElement('address');
-  location.tabIndex = 0;
-
-  // address
   const neighborhood = document.createElement('p');
   neighborhood.innerHTML = restaurant.neighborhood;
-  location.append(neighborhood);
+  li.append(neighborhood);
+
   const address = document.createElement('p');
   address.innerHTML = restaurant.address;
-  location.append(address);
+  li.append(address);
 
-  info.append(location);
-
-  // link more details
   const more = document.createElement('a');
   more.innerHTML = 'View Details';
   more.href = DBHelper.urlForRestaurant(restaurant);
-  more.setAttribute('aria-label', `More details about ${restaurant.name} Restaurant's`);
-  info.append(more);
+  li.append(more)
 
-  article.append(info);
-
-  return article;
+  return li
 }
 
 /**
@@ -256,7 +197,7 @@ addMarkersToMap = (restaurants = self.restaurants) => {
     self.markers.push(marker);
   });
 
-}
+} 
 /* addMarkersToMap = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     // Add marker to the map
@@ -267,3 +208,4 @@ addMarkersToMap = (restaurants = self.restaurants) => {
     self.markers.push(marker);
   });
 } */
+
