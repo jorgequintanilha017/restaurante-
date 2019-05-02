@@ -1,60 +1,58 @@
-let staticCacheName = 'restaurant-reviews-static-v1';
-const cacheUrls = [
-  './',
-  './favicon.png',
-  './manifest.json',
-  './index.html',
-  './restaurant.html',
-  './css/styles.css',
-  './data/restaurants.json',
-  './js/dbhelper.js',
-  './js/main.js',
-  './js/restaurant_info.js',
-  './img/1.jpg',
-  './img/2.jpg',
-  './img/3.jpg',
-  './img/4.jpg',
-  './img/5.jpg',
-  './img/6.jpg',
-  './img/7.jpg',
-  './img/8.jpg',
-  './img/9.jpg',
-  './img/10.jpg'
-];
+let staticCacheName = 'restaurant-';
 
-if (navigator.serviceWorker) {
-  window.addEventListener('load', _ => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(_ => console.log('Service worker registered.'))
-      .catch(_ => console.log('Failed to register Service Worker.'))
-  });
-}
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(staticCacheName)
-      .then(cache => cache.addAll(cacheUrls))
-  );
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
-        return cacheNames.filter(name => {
-          return name.startsWith('restaurant-') && name != staticCacheName
+// install and load all static files and images
+self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(staticCacheName)
+        .then((cache) => {
+            return cache.addAll([
+                './',
+				'./index.html',
+				'./restaurant.html',
+				'./css/styles.css',
+				'./data/restaurants.json',
+				'./js/dbhelper.js',
+				'./js/main.js',
+				'./js/restaurant_info.js',
+				'./js/sw_register.js',
+				'./img/1.jpg',
+				'./img/2.jpg',
+				'./img/3.jpg',
+				'./img/4.jpg',
+				'./img/5.jpg',
+				'./img/6.jpg',
+				'./img/7.jpg',
+				'./img/8.jpg',
+				'./img/9.jpg',
+				'./img/10.jpg'
+            ]);
         })
-      })
-      .then(cacheNames => Promise.all(cacheNames))
-      .then(cacheNames => cacheNames.map(name => caches.delete(name)))
-      .catch(error => console.log(error))
-  );
+    );
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request)
-      .then(response => response || fetch(e.request))
-  );
+// handling old service worker versions
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys()
+        .then((cacheNames) => {
+            return Promise.all(
+                cacheNames.filter((cacheName) => {
+                    return cacheName.startsWith('restaurant-') && cacheName != staticCacheName;
+                })
+                .map((cacheName) => {
+                    return caches.delete(cacheName);
+                })
+            );
+        })
+    );
 });
-© 2019 GitHub, Inc.
+
+// handling file requests
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request) // check cache for requested file
+        .then((response) => {
+            return response || fetch(event.request); // if in cache return, else if possible fetch from network
+        })
+    );
+});
